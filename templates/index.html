@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/css/bootstrap.min.css">
+<script src="https://cdn.bootcdn.net/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.bundle.min.js"></script>
+<script src="./static/js/echarts.min.js"></script>
+<body>
+<br>
+<h1 style="text-align:center;">智能算数系统</h1>
+<br>
+<div class="container">
+    <div class="row">
+        <div class="col-4" style="text-align:center;">
+            <img src="./static/upload.png" alt="" width="100%" id="img1">
+        </div>
+        <div class="col-4" style="text-align:center;">
+            <img src="./static/upload.png" alt="" width="100%" id="img2">
+        </div>
+        <div class="col-4" style="text-align:center;">
+            <div id="pie1" style="width: 150%;height:100%;"></div>
+        </div>
+    </div>
+    <br>
+    <div class="row">
+        <div class="col-2" style="text-align:center;">
+            <button id="open" type="button" class="btn btn-primary">开启摄像头</button>
+        </div>
+        <div class="col-2" style="text-align:center;">
+            <button id="close" type="button" class="btn btn-primary">关闭摄像头</button>
+        </div>
+        <div class="col-4" style="text-align:center;">
+            <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="customSwitch1">
+                <label class="custom-control-label" for="customSwitch1">水平纠正</label>
+            </div>
+            <!-- <button id="fix1" type="button" class="btn btn-primary">水平纠正</button> -->
+        </div>
+        <div class="col-4" style="text-align:center;"></div>
+    </div>
+    <br>
+    <br>
+    <div class="row">
+        <div class="col-4" style="text-align:center;">
+            <img src="./static/upload.png" alt="" width="100%" id="img3">
+        </div>
+        <div class="col-4" style="text-align:center;">
+            <img src="./static/upload.png" alt="" width="100%" id="img4">
+        </div>
+        <div class="col-4" style="text-align:center;">
+            <div id="pie2" style="width: 150%;height:100%;"></div>
+        </div>
+    </div>
+    <br>
+    <div class="row">
+        <div class="col-4" style="text-align:center;">
+            <input id="upload" type="file" class="btn btn-primary"></button>
+        </div>
+        <div class="col-4" style="text-align:center;">
+            <div class="custom-control custom-switch">
+                <input type="checkbox" class="custom-control-input" id="customSwitch2">
+                <label class="custom-control-label" for="customSwitch2">水平纠正</label>
+            </div>
+            <!-- <button id="fix2" type="button" class="btn btn-primary">水平纠正</button> -->
+        </div>
+        <div class="col-4"></div>
+    </div>
+</div>
+</body>
+<script>
+    var myChart1 = echarts.init(document.getElementById('pie1'));
+    var option1 = {
+        series: [
+            {
+                type: 'pie',
+                data: [
+                    {
+                        value: 0,
+                        name: '错误'
+                    },
+                    {
+                        value: 1,
+                        name: '正确'
+                    }
+                ]
+            }
+        ]
+    };
+    myChart1.setOption(option1);
+    var myChart2 = echarts.init(document.getElementById('pie2'));
+    var option2 = {
+        series: [
+            {
+                type: 'pie',
+                data: [
+                    {
+                        value: 0,
+                        name: '错误'
+                    },
+                    {
+                        value: 1,
+                        name: '正确'
+                    }
+                ]
+            }
+        ]
+    };
+    myChart2.setOption(option2);
+
+    function fn() {
+        $.get("/pie1", function (data, status) {
+            if (data.right_count !== 0 || data.wrong_count !== 0) {
+                console.log(data);
+                option1.series[0].data[1].value = data.right_count;
+                option1.series[0].data[1].name = '正确'+data.right_count;
+                option1.series[0].data[0].value = data.wrong_count;
+                option1.series[0].data[0].name = '错误'+data.wrong_count;
+                myChart1.setOption(option1);
+            }
+        });
+    }
+
+    var openId;
+    $('#open').click(function () {
+        $('#img1').attr('src', '/video_feed0');
+        $('#img2').attr('src', '/video_feed1');
+        openId = setInterval(fn, 1000);
+    });
+    $('#close').click(function () {
+        $('#img1').attr('src', '/static/upload.png');
+        $('#img2').attr('src', '/static/upload.png');
+        clearInterval(openId);
+    })
+    $('#upload').on('change', function () {
+        var file = this.files[0];
+        var data = new FormData();
+        data.append("file", file);
+        jQuery.ajax({
+            type: "post",
+            url: "/upload",
+            data: data,
+            contentType: false,
+            //默认文件类型application/x-www-form-urlencoded  设置之后multipart/form-data
+            processData: false,
+            // 默认情况下会对发送的数据转化为对象 不需要转化的信息
+            success: function (rs) {
+                $('#img3').attr('src', rs.path1);
+                $('#img4').attr('src', rs.path2);
+                $.get("/pie2", function (data, status) {
+                    option2.series[0].data[1].value = data.right_count;
+                    option2.series[0].data[1].name = '正确'+data.right_count;
+                    option2.series[0].data[0].value = data.wrong_count;
+                    option2.series[0].data[0].name = '错误'+data.wrong_count;
+                    myChart2.setOption(option2);
+                });
+            },
+        });
+    });
+    var fixed1 = false;
+    $('#customSwitch1').on('change', function () {
+        fixed1 = !fixed1;
+        $('#img2').attr('src', '/video_feed1?fixed=' + fixed1);
+        $.get("/pie1", function (data, status) {
+            option1.series[0].data[1].value = data.right_count;
+            option1.series[0].data[1].name = '正确'+data.right_count;
+            option1.series[0].data[0].value = data.wrong_count;
+            option1.series[0].data[0].name = '错误'+data.wrong_count;
+            myChart1.setOption(option1);
+        });
+    })
+    var fixed2 = false;
+    $('#customSwitch2').on('change', function () {
+        fixed2 = !fixed2;
+        if (fixed2) {
+            var path = $('#img3').attr('src');
+            if (path === "/static/upload.png") {
+                alert("先上传图片");
+            } else {
+                $.get('/upload?file=' + path, function (data, status) {
+                    $('#img4').attr('src', data);
+                    $.get("/pie2", function (data, status) {
+                        option2.series[0].data[1].value = data.right_count;
+                        option2.series[0].data[1].name = '正确'+data.right_count;
+                        option2.series[0].data[0].value = data.wrong_count;
+                        option2.series[0].data[0].name = '错误'+data.wrong_count;
+                        myChart2.setOption(option2);
+                    });
+                });
+            }
+        }
+
+    })
+</script>
+</html>
